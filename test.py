@@ -1,5 +1,9 @@
 import os
+<<<<<<< HEAD
 # import datetime
+=======
+import datetime
+>>>>>>> 81ebad9b212731d770d441bf7af489b32d1935d1
 from bs4 import BeautifulSoup
 
 allCategory = ["essays", "weekly"]

@@ -1,37 +1,42 @@
 import os
-<<<<<<< HEAD
-# import datetime
-=======
-import datetime
->>>>>>> 81ebad9b212731d770d441bf7af489b32d1935d1
 from bs4 import BeautifulSoup
 
 allCategory = ["essays", "weekly"]
-
 allPages = []
+
+attrs = {
+    "woodash-title": "",
+    "woodash-category": "",
+    "woodash-note": "",
+    "woodash-tucao": "",
+    "woodash-scene": "",
+    "date": "",
+}
 
 for categoryName in allCategory:
     pagesInCategory = []
     for page in os.listdir(categoryName):
-        path = f'{categoryName}/{page}'
+        path = f"{categoryName}/{page}"
         with open(path) as HTML:
-            content = BeautifulSoup(HTML, 'html.parser')
+            content = BeautifulSoup(HTML, "html.parser")
             head = content.head
-            title = head.find("title").string
 
-            categoryTag = head.find("meta", attrs={"name": "woodash-category"})
-            category = categoryTag["content"]
+            for item in attrs.items():
+                name = item[0]
+                tag = head.find("meta", attrs={"name": name})
+                attrs[name] = tag["content"]
 
-            dateTag = head.find("meta", attrs={"name": "date"})
-            # 我发现不用datetime也行
-            # dateString = dateTag["content"]
-            # date = datetime.datetime.strptime(dateString, "%Y-%m-%d")
-            date = dateTag["content"]
-            pagesInCategory.append({"title": title,
-                             "category": category,
-                             "date": date,
-                             "path": path
-                             }) 
+            pagesInCategory.append(
+                {
+                    "title": attrs["woodash-title"],
+                    "category": attrs["woodash-category"],
+                    "note": attrs["woodash-note"],
+                    "tucao": attrs["woodash-tucao"],
+                    "scene": attrs["woodash-scene"],
+                    "date": attrs["date"],
+                    "path": path,
+                }
+            )
     pagesInCategory.sort(key=lambda x: x["date"])
     allPages.extend(pagesInCategory)
 

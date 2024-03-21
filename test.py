@@ -4,50 +4,54 @@ from bs4 import BeautifulSoup
 allCategory = ["essays", "weekly"]
 allPages = []
 
+class Article:
+    def __init__(self, title="", category="", note="", tucao="", scene="", date="", path=""):
+        self.title = title
+        self.category = category
+        self.note = note
+        self.tucao = tucao
+        self.scene = scene
+        self.date = date
+        self.path = path
+        
 for categoryName in allCategory:
     pagesInCategory = []
     for page in os.listdir(categoryName):
-        path = f"{categoryName}/{page}"
-        attrs = {
-            "woodash-title": "",
-            "woodash-category": "",
-            "woodash-note": "",
-            "woodash-tucao": "",
-            "woodash-scene": "",
-            "date": "",
-        }
-        with open(path, "r+", encoding="utf-8") as HTML:
+        article = Article()
+        article.path = f"{categoryName}/{page}"
+
+        with open(article.path, "r+", encoding="utf-8") as HTML:
             content = BeautifulSoup(HTML, "html.parser")
             head = content.head
+            
+            attrs = [attr for attr in dir(article)
+                     if not attr.startswith("__")]
 
-            for item in attrs.items():
-                name = item[0]
-                tag = head.find("meta", attrs={"name": name})
-                attrs[name] = tag["content"]
+            for attr in attrs:
+                if attr == "path":
+                    continue
 
-            pagesInCategory.append(
-                {
-                    "title": attrs["woodash-title"],
-                    "category": attrs["woodash-category"],
-                    "note": attrs["woodash-note"],
-                    "tucao": attrs["woodash-tucao"],
-                    "scene": attrs["woodash-scene"],
-                    "date": attrs["date"],
-                    "path": path,
-                }
-            )
+                if attr in ["date"]:
+                    attrName = attr
+                else:
+                    attrName = "woodash-" + attr
+
+                tag = head.find("meta", attrs={"name": attrName})
+                setattr(article, attr, tag["content"])
+
+            pagesInCategory.append(article)
 
             headTemplate = f"""
                             <meta charset="utf-8" />
                             <meta name="generator" content="pandoc" />
                             <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-                            <meta name="woodash-title" content="{attrs["woodash-title"]}">
-                            <meta name="woodash-category" content="{attrs["woodash-category"]}">
-                            <meta name="woodash-note" content="{attrs["woodash-note"]}">
-                            <meta name="woodash-tucao" content="{attrs["woodash-tucao"]}">
-                            <meta name="woodash-scene" content="{attrs["woodash-scene"]}">
-                            <meta name="date" content="{attrs["date"]}" />
-                            <title>Woodash * {attrs["woodash-title"]}</title>
+                            <meta name="woodash-title" content="{article.title}">
+                            <meta name="woodash-category" content="{article.category}">
+                            <meta name="woodash-note" content="{article.note}">
+                            <meta name="woodash-tucao" content="{article.tucao}">
+                            <meta name="woodash-scene" content="{article.scene}">
+                            <meta name="date" content="{article.date}" />
+                            <title>Woodash * {article.title}</title>
 
                             <link rel="icon" href="../images/favicon.ico" />
 
@@ -69,6 +73,8 @@ for categoryName in allCategory:
             HTML.truncate(0)
             HTML.write(content.prettify())
 
-pagesInCategory.sort(key=lambda x: x["date"])
-allPages.extend(pagesInCategory)
-allPages.sort(key=lambda x: x["date"])
+    pagesInCategory.sort(key=lambda x: x.date)
+    allPages.extend(pagesInCategory)
+
+
+allPages.sort(key=lambda x: x.date)

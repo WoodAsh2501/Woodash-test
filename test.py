@@ -1,5 +1,5 @@
 import os
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Comment
 
 categorys = ["essays", "weekly"]
 attrDict = {
@@ -8,11 +8,14 @@ attrDict = {
     "note": "woodash-note",
     "tucao": "woodash-tucao",
     "scene": "woodash-scene",
+    "welcome": "woodash-welcome",
     "date": "date",
 }
 
 
 class Page:
+    welcome = False
+
     def __init__(
         self, title="", category="", note="", tucao="", scene="", date="", path=""
     ):
@@ -34,12 +37,31 @@ class Page:
             for attr in attrs:
                 attrName = attrDict[attr]
                 tag = head.find("meta", attrs={"name": attrName})
-                setattr(self, attr, tag["content"])
+                if tag:
+                    setattr(self, attr, tag["content"])
 
                 # pagesInCategory.append(page)
 
     def addWelcome(self):
-        return 0
+        with open(self.path, "r+", encoding="utf-8") as HTML:
+            content = BeautifulSoup(HTML, "html.parser")
+            welcomeMsg = """
+欢迎来到花园杂乱无章的*苗圃*！
+请随意看看吧。
+                                 """
+            welcomeComment = Comment(welcomeMsg)
+            if self.welcome == False:
+
+                content.insert(0, welcomeComment)
+                self.welcome = True
+            else:
+                comment = content.contents[0]
+                if type(comment) == Comment:
+                    comment.replace_with(welcomeComment)
+                # self.welcome = True
+            HTML.seek(0)
+            HTML.truncate(0)
+            HTML.write(content.prettify())
 
     def updateHead(self):
         with open(self.path, "r+", encoding="utf-8") as HTML:
@@ -49,6 +71,7 @@ class Page:
                         <meta charset="utf-8" />
                         <meta name="generator" content="pandoc" />
                         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                        <meta name="woodash-welcome" content="{self.welcome}">
                         <meta name="woodash-title" content="{self.title}">
                         <meta name="woodash-category" content="{self.category}">
                         <meta name="woodash-note" content="{self.note}">
@@ -93,5 +116,5 @@ pages.sort(key=lambda x: x.date)
 
 for page in pages:
     page.setAttrs()
-    page.updateHead()
     page.addWelcome()
+    page.updateHead()

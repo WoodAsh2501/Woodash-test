@@ -1,10 +1,10 @@
 import os
 from bs4 import BeautifulSoup
 
-allCategory = ["essays", "weekly"]
-allPages = []
+categorys = ["essays", "weekly"]
+pages = []
 
-class Article:
+class Page:
     def __init__(self, title="", category="", note="", tucao="", scene="", date="", path=""):
         self.title = title
         self.category = category
@@ -14,17 +14,17 @@ class Article:
         self.date = date
         self.path = path
         
-for categoryName in allCategory:
+for category in categorys:
     pagesInCategory = []
-    for page in os.listdir(categoryName):
-        article = Article()
-        article.path = f"{categoryName}/{page}"
+    for directory in os.listdir(category):
+        page = Page()
+        page.path = f"{category}/{directory}"
 
-        with open(article.path, "r+", encoding="utf-8") as HTML:
+        with open(page.path, "r+", encoding="utf-8") as HTML:
             content = BeautifulSoup(HTML, "html.parser")
             head = content.head
             
-            attrs = [attr for attr in dir(article)
+            attrs = [attr for attr in dir(page)
                      if not attr.startswith("__")]
 
             for attr in attrs:
@@ -37,21 +37,21 @@ for categoryName in allCategory:
                     attrName = "woodash-" + attr
 
                 tag = head.find("meta", attrs={"name": attrName})
-                setattr(article, attr, tag["content"])
+                setattr(page, attr, tag["content"])
 
-            pagesInCategory.append(article)
+            pagesInCategory.append(page)
 
             headTemplate = f"""
                             <meta charset="utf-8" />
                             <meta name="generator" content="pandoc" />
                             <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-                            <meta name="woodash-title" content="{article.title}">
-                            <meta name="woodash-category" content="{article.category}">
-                            <meta name="woodash-note" content="{article.note}">
-                            <meta name="woodash-tucao" content="{article.tucao}">
-                            <meta name="woodash-scene" content="{article.scene}">
-                            <meta name="date" content="{article.date}" />
-                            <title>Woodash * {article.title}</title>
+                            <meta name="woodash-title" content="{page.title}">
+                            <meta name="woodash-category" content="{page.category}">
+                            <meta name="woodash-note" content="{page.note}">
+                            <meta name="woodash-tucao" content="{page.tucao}">
+                            <meta name="woodash-scene" content="{page.scene}">
+                            <meta name="date" content="{page.date}" />
+                            <title>Woodash * {page.title}</title>
 
                             <link rel="icon" href="../images/favicon.ico" />
 
@@ -74,7 +74,7 @@ for categoryName in allCategory:
             HTML.write(content.prettify())
 
     pagesInCategory.sort(key=lambda x: x.date)
-    allPages.extend(pagesInCategory)
+    pages.extend(pagesInCategory)
 
 
-allPages.sort(key=lambda x: x.date)
+pages.sort(key=lambda x: x.date)

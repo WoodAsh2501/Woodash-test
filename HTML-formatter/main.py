@@ -1,5 +1,5 @@
-import os
 from bs4 import BeautifulSoup, Comment
+from pathlib import Path
 
 categorys = ["essays", "weekly"]
 attrDict = {
@@ -12,6 +12,7 @@ attrDict = {
     "date": "date",
 }
 
+folder = Path(".")
 
 class Page:
     welcome = False
@@ -48,7 +49,7 @@ class Page:
             welcomeMsg = """
 欢迎来到花园杂乱无章的*苗圃*！
 请随意看看吧。
-                                 """
+"""
             welcomeComment = Comment(welcomeMsg)
             if self.welcome == False:
 
@@ -103,9 +104,11 @@ def getPages():
     _pages = []
     for category in categorys:
         # pagesInCategory = []
-        for fileName in os.listdir(category):
+        categoryDir = folder / category
+
+        for fileName in categoryDir.iterdir():
             page = Page()
-            page.path = f"{category}/{fileName}"
+            page.path = Path(fileName)
             _pages.append(page)
 
     return _pages

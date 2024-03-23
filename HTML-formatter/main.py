@@ -1,7 +1,15 @@
 from bs4 import BeautifulSoup, Comment
 from pathlib import Path
+from dateutil import parser
 
-categorys = ["essays", "weekly"]
+categorys = ["essay", "weekly"]
+categoryDict = {
+    "essay": "杂谈",
+    "weekly": "周报",
+    "experience": "体验",
+    "records": "琐记",
+    "note": "笔记",
+}
 attrDict = {
     "title": "woodash-title",
     "category": "woodash-category",
@@ -14,9 +22,8 @@ attrDict = {
 
 folder = Path(".")
 
-class Page:
-    welcome = False
 
+class Page:
     def __init__(
         self, title="", category="", note="", tucao="", scene="", date="", path=""
     ):
@@ -27,6 +34,7 @@ class Page:
         self.scene = scene
         self.date = date
         self.path = path
+        self.welcome = False
 
     def setAttrs(self):
         with open(self.path, "r+", encoding="utf-8") as HTML:
@@ -40,8 +48,6 @@ class Page:
                 tag = head.find("meta", attrs={"name": attrName})
                 if tag:
                     setattr(self, attr, tag["content"])
-
-                # pagesInCategory.append(page)
 
     def addWelcome(self):
         with open(self.path, "r+", encoding="utf-8") as HTML:
@@ -70,16 +76,22 @@ class Page:
             head = content.head
             headTemplate = f"""
                         <meta charset="utf-8" />
-                        <meta name="generator" content="pandoc" />
+                        <meta http-equiv="Content-Language" content="zh-CN" />
+                        <meta name="language" content="zh-CN" />
                         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+                        <title>Woodash * {self.title}</title>
+                        <meta name="description" content="技术与美学与数字花园" />
+                        <meta name="author" content="woodash" />
+                        <meta name="date" content="{self.date}" />
+
                         <meta name="woodash-welcome" content="{self.welcome}">
                         <meta name="woodash-title" content="{self.title}">
                         <meta name="woodash-category" content="{self.category}">
                         <meta name="woodash-note" content="{self.note}">
                         <meta name="woodash-tucao" content="{self.tucao}">
                         <meta name="woodash-scene" content="{self.scene}">
-                        <meta name="date" content="{self.date}" />
-                        <title>Woodash * {self.title}</title>
+                        
                         <link rel="icon" href="../images/favicon.ico" />
                         <link rel="preconnect" href="https://ik.imagekit.io" crossorigin />
                         <link
@@ -99,6 +111,22 @@ class Page:
             HTML.truncate(0)
             HTML.write(content.prettify())
 
+    # def addReturn(self):
+    #     if self.category == "index":
+    #         return
+
+    #     link = "index.html"
+    #     categoryName = categoryDict[self.category]
+
+    #     with open(self.path, "r+", encoding="utf-8") as HTML:
+    #         content = BeautifulSoup(HTML, "html.parser")
+    #         article = content.body.article
+    #         back = f"""<a href={link} id="return">{categoryName}</a>"""
+    #         article.insert(0, back)
+
+    #         HTML.seek(0)
+    #         HTML.truncate(0)
+    #         HTML.write(content.prettify())
 
 def getPages():
     _pages = []
@@ -114,10 +142,81 @@ def getPages():
     return _pages
 
 
+def updateIndex(_pages):
+    def updateCategoryIndex(_pages):
+        for category in categorys:
+            pagesInCategory = [page for page in _pages if page.category == category]
+            article = ""
+            for page in pagesInCategory:
+                if page.category == "index":
+                    continue
+                article += f"""
+<article>
+  <div class="article-info">
+    <h2 class="article-title">
+      <a href="{page.path.name}">
+        {page.title}
+      </a>
+    </h2>
+    <p class="article-date">
+      {page.date.replace("-", ".")}.{page.scene}
+    </p>
+  </div>
+  <p class="article-summary">
+    {page.note}
+  </p>
+</article>
+"""
+            categoryIndex = Path(f"{category}/index.html")
+            with open(categoryIndex, "r+", encoding="utf-8") as HTML:
+                content = BeautifulSoup(HTML, "html.parser")
+                target = content.body.main
+                target.clear()
+                target.append(BeautifulSoup(article, "html.parser"))
+                HTML.seek(0)
+                HTML.truncate(0)
+                HTML.write(content.prettify())
+
+    def updateMainIndex(_pages):
+        mainIndex = Path("index.html")
+        article = ""
+        for page in _pages:
+            if page.category == "index":
+                continue
+            article += f"""
+<article>
+  <h1 class="article-title">
+    <a href="{page.path}">
+      {page.title}
+    </a>
+  </h1>
+  <p class="article-date">
+    {page.date.replace("-", ".")}.{page.scene}
+  </p>
+  <p class="article-summary">
+    {page.note}
+  </p>
+</article>
+        """
+        with open(mainIndex, "r+", encoding="utf-8") as HTML:
+            content = BeautifulSoup(HTML, "html.parser")
+            target = content.body.main.find(id="column-right")
+            target.clear()
+            target.append(BeautifulSoup(article, "html.parser"))
+            HTML.seek(0)
+            HTML.truncate(0)
+            HTML.write(content.prettify())
+
+    updateCategoryIndex(_pages)
+    updateMainIndex(_pages)
+
+
 pages = getPages()
-pages.sort(key=lambda x: x.date)
 
 for page in pages:
     page.setAttrs()
     page.addWelcome()
     page.updateHead()
+
+pages.sort(key=lambda x: x.date, reverse=True)
+updateIndex(pages) 

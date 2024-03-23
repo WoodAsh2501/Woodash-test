@@ -1,6 +1,5 @@
 from bs4 import BeautifulSoup, Comment
 from pathlib import Path
-from dateutil import parser
 
 categorys = ["essay", "weekly"]
 categoryDict = {
@@ -41,7 +40,7 @@ class Page:
             content = BeautifulSoup(HTML, "html.parser")
             head = content.head
 
-            attrs = [attr for attr in attrDict.keys()]
+            attrs = (attr for attr in attrDict.keys())
 
             for attr in attrs:
                 attrName = attrDict[attr]
@@ -58,14 +57,12 @@ class Page:
 """
             welcomeComment = Comment(welcomeMsg)
             if self.welcome == False:
-
                 content.insert(0, welcomeComment)
                 self.welcome = True
             else:
                 comment = content.contents[0]
                 if type(comment) == Comment:
                     comment.replace_with(welcomeComment)
-                # self.welcome = True
             HTML.seek(0)
             HTML.truncate(0)
             HTML.write(content.prettify())
@@ -145,7 +142,7 @@ def getPages():
 def updateIndex(_pages):
     def updateCategoryIndex(_pages):
         for category in categorys:
-            pagesInCategory = [page for page in _pages if page.category == category]
+            pagesInCategory = (page for page in _pages if page.category == category)
             article = ""
             for page in pagesInCategory:
                 if page.category == "index":

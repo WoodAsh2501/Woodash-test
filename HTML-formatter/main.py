@@ -1,6 +1,7 @@
 from pathlib import Path
-from bs4 import BeautifulSoup, Comment
 from textwrap import dedent
+from bs4 import BeautifulSoup
+from bs4 import Comment
 
 
 categorys = ["essay", "weekly"]

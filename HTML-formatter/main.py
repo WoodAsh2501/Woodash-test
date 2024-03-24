@@ -1,5 +1,7 @@
-from bs4 import BeautifulSoup, Comment
 from pathlib import Path
+from bs4 import BeautifulSoup, Comment
+from textwrap import dedent
+
 
 categorys = ["essay", "weekly"]
 categoryDict = {
@@ -52,10 +54,10 @@ class Page:
         with open(self.path, "r+", encoding="utf-8") as HTML:
             content = BeautifulSoup(HTML, "html.parser")
             welcomeMsg = """
-欢迎来到花园杂乱无章的*苗圃*！
-请随意看看吧。
-"""
-            welcomeComment = Comment(welcomeMsg)
+                        欢迎来到花园杂乱无章的*苗圃*！
+                        请随意看看吧。
+                        """
+            welcomeComment = Comment(dedent(welcomeMsg))
             if self.welcome == False:
                 content.insert(0, welcomeComment)
                 self.welcome = True
@@ -102,7 +104,7 @@ class Page:
                         """
 
             head.clear()
-            head.append(BeautifulSoup(headTemplate, "html.parser"))
+            head.append(BeautifulSoup(dedent(headTemplate), "html.parser"))
             # 写入
             HTML.seek(0)
             HTML.truncate(0)
@@ -124,6 +126,7 @@ class Page:
     #         HTML.seek(0)
     #         HTML.truncate(0)
     #         HTML.write(content.prettify())
+
 
 def getPages():
     _pages = []
@@ -148,28 +151,28 @@ def updateIndex(_pages):
                 if page.category == "index":
                     continue
                 article += f"""
-<article>
-  <div class="article-info">
-    <h2 class="article-title">
-      <a href="{page.path.name}">
-        {page.title}
-      </a>
-    </h2>
-    <p class="article-date">
-      {page.date.replace("-", ".")}.{page.scene}
-    </p>
-  </div>
-  <p class="article-summary">
-    {page.note}
-  </p>
-</article>
-"""
+                          <article>
+                            <div class="article-info">
+                              <h2 class="article-title">
+                                <a href="{page.path.name}">
+                                  {page.title}
+                                </a>
+                              </h2>
+                              <p class="article-date">
+                                {page.date.replace("-", ".")}.{page.scene}
+                              </p>
+                            </div>
+                            <p class="article-summary">
+                              {page.note}
+                            </p>
+                          </article>
+                          """
             categoryIndex = Path(f"{category}/index.html")
             with open(categoryIndex, "r+", encoding="utf-8") as HTML:
                 content = BeautifulSoup(HTML, "html.parser")
                 target = content.body.main
                 target.clear()
-                target.append(BeautifulSoup(article, "html.parser"))
+                target.append(BeautifulSoup(dedent(article), "html.parser"))
                 HTML.seek(0)
                 HTML.truncate(0)
                 HTML.write(content.prettify())
@@ -181,25 +184,25 @@ def updateIndex(_pages):
             if page.category == "index":
                 continue
             article += f"""
-<article>
-  <h1 class="article-title">
-    <a href="{page.path}">
-      {page.title}
-    </a>
-  </h1>
-  <p class="article-date">
-    {page.date.replace("-", ".")}.{page.scene}
-  </p>
-  <p class="article-summary">
-    {page.note}
-  </p>
-</article>
-        """
+                      <article>
+                        <h1 class="article-title">
+                          <a href="{page.path}">
+                            {page.title}
+                          </a>
+                        </h1>
+                        <p class="article-date">
+                          {page.date.replace("-", ".")}.{page.scene}
+                        </p>
+                        <p class="article-summary">
+                          {page.note}
+                        </p>
+                      </article>
+                      """
         with open(mainIndex, "r+", encoding="utf-8") as HTML:
             content = BeautifulSoup(HTML, "html.parser")
             target = content.body.main.find(id="column-right")
             target.clear()
-            target.append(BeautifulSoup(article, "html.parser"))
+            target.append(BeautifulSoup(dedent(article), "html.parser"))
             HTML.seek(0)
             HTML.truncate(0)
             HTML.write(content.prettify())
@@ -216,4 +219,4 @@ for page in pages:
     page.updateHead()
 
 pages.sort(key=lambda x: x.date, reverse=True)
-updateIndex(pages) 
+updateIndex(pages)

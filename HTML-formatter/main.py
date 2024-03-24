@@ -151,7 +151,7 @@ def updateIndex(_pages):
             for page in pagesInCategory:
                 if page.category == "index":
                     continue
-                article += f"""
+                newString = f"""
                           <article>
                             <div class="article-info">
                               <h2 class="article-title">
@@ -168,6 +168,7 @@ def updateIndex(_pages):
                             </p>
                           </article>
                           """
+                article = ''.join([article, newString])
             categoryIndex = Path(f"{category}/index.html")
             with open(categoryIndex, "r+", encoding="utf-8") as HTML:
                 content = BeautifulSoup(HTML, "html.parser")
@@ -184,7 +185,7 @@ def updateIndex(_pages):
         for page in _pages:
             if page.category == "index":
                 continue
-            article += f"""
+            newString = f"""
                       <article>
                         <h1 class="article-title">
                           <a href="{page.path}">
@@ -199,6 +200,7 @@ def updateIndex(_pages):
                         </p>
                       </article>
                       """
+            article = ''.join([article, newString])
         with open(mainIndex, "r+", encoding="utf-8") as HTML:
             content = BeautifulSoup(HTML, "html.parser")
             target = content.body.main.find(id="column-right")

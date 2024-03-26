@@ -111,7 +111,7 @@ class Page:
             HTML.truncate(0)
             HTML.write(content.prettify())
 
-    def addReturn(self):
+    def addBoard(self):
         if self.category == "index":
             return
 
@@ -121,12 +121,18 @@ class Page:
         with open(self.path, "r+", encoding="utf-8") as HTML:
             content = BeautifulSoup(HTML, "html.parser")
             article = content.body.article
+            boardString = f"""
+                          <div id="board">
+                            <a href="{link}" id="return">{categoryName}</a>
+                            <img src="../images/asterisk.svg" id="asterisk" alt="" />
+                          </div>
+                          """
             back = f"""<a href={link} id="return">{categoryName}</a>"""
-            while article.find(id="return"):
-                anchorToDel = article.find(id="return")
-                anchorToDel.extract()
+            while article.find(id="board"):
+                divToClear = article.find(id="board")
+                divToClear.extract()
 
-            article.insert(0, BeautifulSoup(dedent(back), "html.parser"))
+            article.insert(0, BeautifulSoup(dedent(boardString), "html.parser"))
 
             HTML.seek(0)
             HTML.truncate(0)
@@ -224,7 +230,7 @@ for page in pages:
     page.setAttrs()
     page.addWelcome()
     page.updateHead()
-    page.addReturn()
+    page.addBoard()
 
 pages.sort(key=lambda x: x.date, reverse=True)
 updateIndex(pages)

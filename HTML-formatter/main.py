@@ -111,22 +111,26 @@ class Page:
             HTML.truncate(0)
             HTML.write(content.prettify())
 
-    # def addReturn(self):
-    #     if self.category == "index":
-    #         return
+    def addReturn(self):
+        if self.category == "index":
+            return
 
-    #     link = "index.html"
-    #     categoryName = categoryDict[self.category]
+        link = "index.html"
+        categoryName = categoryDict[self.category]
 
-    #     with open(self.path, "r+", encoding="utf-8") as HTML:
-    #         content = BeautifulSoup(HTML, "html.parser")
-    #         article = content.body.article
-    #         back = f"""<a href={link} id="return">{categoryName}</a>"""
-    #         article.insert(0, back)
+        with open(self.path, "r+", encoding="utf-8") as HTML:
+            content = BeautifulSoup(HTML, "html.parser")
+            article = content.body.article
+            back = f"""<a href={link} id="return">{categoryName}</a>"""
+            while article.find(id="return"):
+                anchorToDel = article.find(id="return")
+                anchorToDel.extract()
 
-    #         HTML.seek(0)
-    #         HTML.truncate(0)
-    #         HTML.write(content.prettify())
+            article.insert(0, BeautifulSoup(dedent(back), "html.parser"))
+
+            HTML.seek(0)
+            HTML.truncate(0)
+            HTML.write(content.prettify())
 
 
 def getPages():
@@ -168,7 +172,7 @@ def updateIndex(_pages):
                             </p>
                           </article>
                           """
-                article = ''.join([article, newString])
+                article = "".join([article, newString])
             categoryIndex = Path(f"{category}/index.html")
             with open(categoryIndex, "r+", encoding="utf-8") as HTML:
                 content = BeautifulSoup(HTML, "html.parser")
@@ -200,7 +204,7 @@ def updateIndex(_pages):
                         </p>
                       </article>
                       """
-            article = ''.join([article, newString])
+            article = "".join([article, newString])
         with open(mainIndex, "r+", encoding="utf-8") as HTML:
             content = BeautifulSoup(HTML, "html.parser")
             target = content.body.main.find(id="column-right")
@@ -220,6 +224,7 @@ for page in pages:
     page.setAttrs()
     page.addWelcome()
     page.updateHead()
+    page.addReturn()
 
 pages.sort(key=lambda x: x.date, reverse=True)
 updateIndex(pages)

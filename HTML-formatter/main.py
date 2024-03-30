@@ -2,6 +2,8 @@ from pathlib import Path
 from textwrap import dedent
 from bs4 import BeautifulSoup
 from bs4 import Comment
+import html
+
 
 
 categorys = ["essay", "weekly"]
@@ -13,7 +15,6 @@ categoryDict = {
     "note": "笔记",
 }
 attrDict = {
-    "title": "woodash-title",
     "category": "woodash-category",
     "note": "woodash-note",
     "tucao": "woodash-tucao",
@@ -86,7 +87,6 @@ class Page:
                         <meta name="date" content="{self.date}" />
 
                         <meta name="woodash-welcome" content="{self.welcome}">
-                        <meta name="woodash-title" content="{self.title}">
                         <meta name="woodash-category" content="{self.category}">
                         <meta name="woodash-note" content="{self.note}">
                         <meta name="woodash-tucao" content="{self.tucao}">
@@ -105,11 +105,11 @@ class Page:
                         """
 
             head.clear()
-            head.append(BeautifulSoup(dedent(headTemplate), "html.parser"))
+            head.append(dedent(headTemplate))
             # 写入
             HTML.seek(0)
             HTML.truncate(0)
-            HTML.write(content.prettify())
+            HTML.write(content.prettify(formatter=None))
 
     def addBoard(self):
         if self.category == "index":
@@ -147,6 +147,7 @@ def getPages():
 
         for fileName in categoryDir.iterdir():
             page = Page()
+            page.title = Path(fileName).stem
             page.path = Path(fileName)
             _pages.append(page)
 
@@ -228,9 +229,9 @@ pages = getPages()
 
 for page in pages:
     page.setAttrs()
-    page.addWelcome()
+    # page.addWelcome()
     page.updateHead()
-    page.addBoard()
+    # page.addBoard()
 
-pages.sort(key=lambda x: x.date, reverse=True)
-updateIndex(pages)
+# pages.sort(key=lambda x: x.date, reverse=True)
+# updateIndex(pages)

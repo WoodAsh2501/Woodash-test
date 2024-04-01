@@ -179,8 +179,11 @@ class Page:
             addBoard(self)
 
         if self.category == "weekly":
-            addContents(self)
-            addSummary(self)
+            if self.title == "半燃其零・钻木求火码后记":
+                pass
+            else:
+                addContents(self)
+                addSummary(self)
 
         addWelcome(self)
         updateHead(self)
@@ -191,17 +194,22 @@ def getPages(_category):
     categoryDir = folder / _category
 
     for fileName in categoryDir.iterdir():
+        # if Path(fileName).suffix != "html":
+            # continue
         page = Page()
         page.title = Path(fileName).stem
         page.path = Path(fileName)
 
-        if "index.html" in str(fileName):
+        if Path(fileName).stem == "index":
             page.category = "index"
         else:
             page.category = _category
-            _pages.append(page)
-
         page.edit()
+
+        ignore = page.category == "index" or not page.note
+        if not ignore:
+            _pages.append(page)
+        
         
     _pages.sort(key=lambda x: x.date, reverse=True)
 
@@ -211,7 +219,6 @@ def getPages(_category):
 def updateCategoryIndex(_pages, _category):
     article = ""
     for page in _pages:
-        
         newString = f"""
                       <article>
                         <div class="article-info">

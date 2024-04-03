@@ -2,6 +2,7 @@ from pathlib import Path
 from textwrap import dedent
 from bs4 import BeautifulSoup
 from bs4 import Comment
+from bs4.formatter import HTMLFormatter
 
 
 categorys = ["notes", "weekly", "essays", "experience", "records"]
@@ -21,10 +22,22 @@ attrDict = {
 
 folder = Path(".")
 
+class UnsortedAttributes(HTMLFormatter):
+    def attributes(self, tag):
+        for k, v in tag.attrs.items():
+            yield k, v
 
 class Page:
     def __init__(
-        self, title="", category="", note="", tucao="", scene="", date="", path=""
+        self,
+        title="",
+        category="",
+        note="",
+        tucao="",
+        scene="",
+        date="",
+        path="",
+        style="",
     ):
         self.title = title
         self.category = category
@@ -33,8 +46,17 @@ class Page:
         self.scene = scene
         self.date = date
         self.path = path
+        self.style = style
 
     def edit(self):
+
+        def setStyle(self):
+            with open(self.path, "r+", encoding="utf-8") as HTML:
+                content = BeautifulSoup(HTML, "html.parser")
+                head = content.head
+                styleList = head.find_all("link", rel="stylesheet")
+                styleList = map(str, styleList)
+                self.style = styleList
 
         def setAttrs(self):
             with open(self.path, "r+", encoding="utf-8") as HTML:
@@ -89,7 +111,7 @@ class Page:
                 else:
                     board = article.find(id="board")
                     board.string = boardString
-                
+
                 HTML.seek(0)
                 HTML.truncate(0)
                 HTML.write(content.prettify(formatter=None))
@@ -99,31 +121,32 @@ class Page:
                 content = BeautifulSoup(HTML, "html.parser")
                 head = content.head
                 headTemplate = f"""
-                          <meta charset="utf-8" />
-                          <meta http-equiv="Content-Language" content="zh-CN" />
-                          <meta name="language" content="zh-CN" />
-                          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                                <meta charset="utf-8" />
+                                <meta http-equiv="Content-Language" content="zh-CN" />
+                                <meta name="language" content="zh-CN" />
+                                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-                          <title>Woodash * {self.title}</title>
-                          <meta name="description" content="技术与美学与数字花园" />
-                          <meta name="author" content="woodash" />
-                          <meta name="date" content="{self.date}" />
+                                <title>Woodash * {self.title}</title>
+                                <meta name="description" content="技术与美学与数字花园" />
+                                <meta name="author" content="woodash" />
+                                <meta name="date" content="{self.date}" />
 
-                          <meta name="woodash-note" content="{self.note}">
-                          <meta name="woodash-tucao" content="{self.tucao}">
-                          <meta name="woodash-scene" content="{self.scene}">
-                          
-                          <link rel="icon" href="../images/favicon.ico" />
-                          <link rel="preconnect" href="https://ik.imagekit.io" crossorigin />
-                          <link
-                          href="https://ik.imagekit.io/Woodash/SourceHanSerifSC-VF/result.css"
-                          rel="stylesheet"
-                          />
-                          <link href="../styles/normalize.css" rel="stylesheet" />
-                          <link href="../styles/basic.css" rel="stylesheet" />
-                          <link href="../styles/articles.css" rel="stylesheet" />
-                          <script defer src="../scripts/article/setImageSize.js"></script>
-                          """
+                                <meta name="woodash-note" content="{self.note}">
+                                <meta name="woodash-tucao" content="{self.tucao}">
+                                <meta name="woodash-scene" content="{self.scene}">
+                                
+                                <link rel="icon" href="../images/favicon.ico" />
+                                <link rel="preconnect" href="https://ik.imagekit.io" crossorigin />
+                                """
+                for style in self.style:
+                    headTemplate = dedent(headTemplate)
+                    headTemplate += f"""{style}"""
+                    headTemplate += "\n"
+                    
+
+                headTemplate += dedent(f"""
+                                <script defer src="../scripts/article/setImageSize.js"></script>
+                                """)
 
                 head.clear()
                 head.append(dedent(headTemplate))
@@ -140,7 +163,7 @@ class Page:
                 oldContents = article.find_all(id="索引")
                 for oldTag in oldContents:
                     oldTag.extract()
-                    
+
                 titles = article.find_all("h2")
                 contentsTag = content.new_tag("section")
                 contentsTag["id"] = "索引"
@@ -149,7 +172,7 @@ class Page:
                 def turnIntoListItem(_titleTag):
                     name = _titleTag.string.strip()
                     string = f'<li><a href="#{name}">{name}</a></li>'
-                    return string               
+                    return string
 
                 contentsTag.string = f"""<h2>索引</h2>
                                     <ul>
@@ -169,10 +192,8 @@ class Page:
                 titles = article.find_all("h2")
                 titles = map(lambda x: x.string.strip(), titles)
                 ignoreList = ["索引", "生活", "摘录", "网页", "创作", "图像", "结"]
-                summary = [title for title in titles
-                           if title not in ignoreList]
+                summary = [title for title in titles if title not in ignoreList]
                 self.note = "/".join(summary)
-               
 
         if self.category != "index":
             setAttrs(self)
@@ -185,6 +206,7 @@ class Page:
                 addContents(self)
                 addSummary(self)
 
+        setStyle(self)
         addWelcome(self)
         updateHead(self)
 
@@ -195,7 +217,7 @@ def getPages(_category):
 
     for fileName in categoryDir.iterdir():
         # if Path(fileName).suffix != "html":
-            # continue
+        # continue
         page = Page()
         page.title = Path(fileName).stem
         page.path = Path(fileName)
@@ -209,8 +231,7 @@ def getPages(_category):
         ignore = page.category == "index" or not page.note
         if not ignore:
             _pages.append(page)
-        
-        
+
     _pages.sort(key=lambda x: x.date, reverse=True)
 
     return _pages
@@ -288,5 +309,3 @@ for category in categorys:
 
 allPages.sort(key=lambda x: x.date, reverse=True)
 updateMainIndex(allPages)
-
-

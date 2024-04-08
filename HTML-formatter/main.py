@@ -116,6 +116,16 @@ class Page:
                 HTML.truncate(0)
                 HTML.write(content.prettify(formatter=None))
 
+        def setDate(self):
+            with open(self.path, "r+", encoding="utf-8") as HTML:
+                content = BeautifulSoup(HTML, "html.parser")
+                dateTag = content.find(id="article-header-date")
+                dateTag.string = dateTag.string.replace("-", ".")
+                # 写入
+                HTML.seek(0)
+                HTML.truncate(0)
+                HTML.write(content.prettify(formatter=None))
+
         def updateHead(self):
             with open(self.path, "r+", encoding="utf-8") as HTML:
                 content = BeautifulSoup(HTML, "html.parser")
@@ -163,14 +173,15 @@ class Page:
                 for oldTag in oldContents:
                     oldTag.extract()
 
-                titles = article.find_all("h2")
+                titles = article.find_all(class_="level2")
                 contentsTag = content.new_tag("section")
                 contentsTag["id"] = "索引"
                 contentsTag["class"] = "level2"
 
                 def turnIntoListItem(_titleTag):
-                    name = _titleTag.string.strip()
-                    string = f'<li><a href="#{name}">{name}</a></li>'
+                    name = _titleTag.h2.string.strip()
+                    id = _titleTag.get("id")
+                    string = f'<li><a href="#{id}">{name}</a></li>'
                     return string
 
                 contentsTag.string = f"""<h2>索引</h2>
@@ -197,6 +208,7 @@ class Page:
         if self.category != "index":
             setAttrs(self)
             addBoard(self)
+            setDate(self)
 
         if self.category == "weekly":
             if self.title == "半燃其零・钻木求火码后记":
@@ -260,9 +272,13 @@ def updateCategoryIndex(_pages, _category):
     categoryIndex = Path(f"{_category}/index.html")
     with open(categoryIndex, "r+", encoding="utf-8") as HTML:
         content = BeautifulSoup(HTML, "html.parser")
-        target = content.body.main
-        target.clear()
-        target.append(BeautifulSoup(dedent(article), "html.parser"))
+        header = content.body.main.header
+
+        oldArticles = content.find_all("article")
+        for oldArticle in oldArticles:
+            oldArticle.extract()
+
+        header.insert_after(BeautifulSoup(dedent(article), "html.parser"))
         HTML.seek(0)
         HTML.truncate(0)
         HTML.write(content.prettify(formatter=None))

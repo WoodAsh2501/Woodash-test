@@ -1,5 +1,5 @@
 from pathlib import Path
-from textwrap import dedent
+from textwrap import dedent, indent
 from bs4 import BeautifulSoup
 from bs4 import Comment
 from bs4.formatter import HTMLFormatter
@@ -138,18 +138,17 @@ class Page:
                                 <link rel="icon" href="../images/favicon.ico" />
                                 <link rel="preconnect" href="https://ik.imagekit.io" crossorigin />
                                 """
+                headTemplate = dedent(headTemplate)
                 for style in self.style:
-                    headTemplate = dedent(headTemplate)
                     headTemplate += f"""{style}"""
                     headTemplate += "\n"
                     
-
                 headTemplate += dedent(f"""
                                 <script defer src="../scripts/article/setImageSize.js"></script>
                                 """)
-
+                headTemplate = indent(headTemplate, "  ")
                 head.clear()
-                head.append(dedent(headTemplate))
+                head.append((headTemplate))
                 # 写入
                 HTML.seek(0)
                 HTML.truncate(0)

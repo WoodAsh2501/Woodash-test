@@ -20,24 +20,27 @@ attrDict = {
     "date": "date",
 }
 
-folder = Path(".")
+directory = Path(".")
+
 
 class UnsortedAttributes(HTMLFormatter):
     def attributes(self, tag):
         for k, v in tag.attrs.items():
             yield k, v
 
+
 class Page:
     def __init__(
         self,
-        title="",
-        category="",
-        note="",
-        tucao="",
-        scene="",
-        date="",
-        path="",
-        style="",
+        title="*怎么没有标题*",
+        category="*我分类呢*",
+        note="*似乎并没有备注*",
+        tucao="*没有吐槽呢*",
+        scene="*竟然没有场景*",
+        date="*日期……应该要有的*",
+
+        path="*不是，没有路径吗？*",
+        style="*甚至没有样式表*",
     ):
         self.title = title
         self.category = category
@@ -45,31 +48,64 @@ class Page:
         self.tucao = tucao
         self.scene = scene
         self.date = date
+
         self.path = path
         self.style = style
 
+    def setAttrs(self):
+        with open(self.pagh, "r+", encoding="utf-8") as HTML:
+            content = BeautifulSoup(HTML, "html.parser")
+            head = content.head
+            body = content.body
+
+            setStyles(self, head)
+            setTitle(self)
+            setMeta(self, head, attrDict)
+
+        def setStyles(self, _head):
+            head = _head
+            styleList = head.find_all("link", rel="stylesheet")
+            styleList = map(str, styleList)
+            self.style = styleList
+
+        def setTitle(self):
+            self.title = Path(self.path).stem
+        
+        def setMeta(self, _head, _attrDict):
+            head = _head
+            attrDict = _attrDict
+            attrs = (attr for attr in attrDict.keys())
+
+            for attr in attrs:
+                attrName = attrDict[attr]
+                tag = head.find("meta", attrs={"name": attrName})
+                if tag:
+                    setattr(self, attr, tag["content"])
+
+
+
     def edit(self):
 
-        def setStyle(self):
-            with open(self.path, "r+", encoding="utf-8") as HTML:
-                content = BeautifulSoup(HTML, "html.parser")
-                head = content.head
-                styleList = head.find_all("link", rel="stylesheet")
-                styleList = map(str, styleList)
-                self.style = styleList
+        # def setStyle(self):
+        #     with open(self.path, "r+", encoding="utf-8") as HTML:
+        #         content = BeautifulSoup(HTML, "html.parser")
+        #         head = content.head
+        #         styleList = head.find_all("link", rel="stylesheet")
+        #         styleList = map(str, styleList)
+        #         self.style = styleList
 
-        def setAttrs(self):
-            with open(self.path, "r+", encoding="utf-8") as HTML:
-                content = BeautifulSoup(HTML, "html.parser")
-                head = content.head
+        # def setAttrs(self):
+        #     with open(self.path, "r+", encoding="utf-8") as HTML:
+        #         content = BeautifulSoup(HTML, "html.parser")
+        #         head = content.head
 
-                attrs = (attr for attr in attrDict.keys())
+        #         attrs = (attr for attr in attrDict.keys())
 
-                for attr in attrs:
-                    attrName = attrDict[attr]
-                    tag = head.find("meta", attrs={"name": attrName})
-                    if tag:
-                        setattr(self, attr, tag["content"])
+        #         for attr in attrs:
+        #             attrName = attrDict[attr]
+        #             tag = head.find("meta", attrs={"name": attrName})
+        #             if tag:
+        #                 setattr(self, attr, tag["content"])
 
         def addWelcome(self):
             with open(self.path, "r+", encoding="utf-8") as HTML:
@@ -152,10 +188,12 @@ class Page:
                 for style in self.style:
                     headTemplate += f"""{style}"""
                     headTemplate += "\n"
-                    
-                headTemplate += dedent(f"""
+
+                headTemplate += dedent(
+                    f"""
                                 <script defer src="../scripts/article/setImageSize.js"></script>
-                                """)
+                                """
+                )
                 headTemplate = indent(headTemplate, "  ")
                 head.clear()
                 head.append((headTemplate))
@@ -206,7 +244,6 @@ class Page:
                 self.note = "/".join(summary)
 
         if self.category != "index":
-            setAttrs(self)
             addBoard(self)
             setDate(self)
 
@@ -217,31 +254,27 @@ class Page:
                 addContents(self)
                 addSummary(self)
 
-        setStyle(self)
         addWelcome(self)
         updateHead(self)
 
 
-def getPages(_category):
+def getPages(_category, _directory):
     _pages = []
-    categoryDir = folder / _category
-
+    categoryDir = _directory / _category
     for fileName in categoryDir.iterdir():
         # if Path(fileName).suffix != "html":
-        # continue
-        page = Page()
-        page.title = Path(fileName).stem
-        page.path = Path(fileName)
+        #   continue
+        page = Page(path=Path(fileName))
+        # page.setAttrs()
+        # if Path(fileName).stem == "index":
+        #     page.category = "index"
+        # else:
+        #     page.category = _category
+        # # page.edit()
 
-        if Path(fileName).stem == "index":
-            page.category = "index"
-        else:
-            page.category = _category
-        page.edit()
-
-        ignore = page.category == "index" or not page.note
-        if not ignore:
-            _pages.append(page)
+        # ignore = page.category == "index" or not page.note
+        # if not ignore:
+        #     _pages.append(page)
 
     _pages.sort(key=lambda x: x.date, reverse=True)
 
@@ -317,7 +350,7 @@ def updateMainIndex(_pages):
 allPages = []
 
 for category in categorys:
-    categoryPages = getPages(category)
+    categoryPages = getPages(category, directory)
     updateCategoryIndex(categoryPages, category)
     allPages.extend(categoryPages)
 

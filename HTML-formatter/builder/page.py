@@ -2,34 +2,8 @@ from pathlib import Path
 from textwrap import dedent, indent
 from bs4 import BeautifulSoup
 from bs4 import Comment
-from bs4.formatter import HTMLFormatter
 
-
-categorys = ["notes", "weekly", "essays", "experience", "records"]
-categoryDict = {
-    "essays": "杂谈",
-    "weekly": "周报",
-    "experience": "体验",
-    "records": "琐记",
-    "notes": "笔记",
-}
-attrDict = {
-    "note": "woodash-note",
-    "tucao": "woodash-tucao",
-    "scene": "woodash-scene",
-    "date": "date",
-}
-
-ignoreList = ["半燃其零・钻木求火码后记"]
-
-directory = Path(".")
-
-
-class UnsortedAttributes(HTMLFormatter):
-    def attributes(self, tag):
-        for k, v in tag.attrs.items():
-            yield k, v
-
+from globalVar import *
 
 class Page:
     def __init__(
@@ -84,7 +58,7 @@ class Page:
                 self.category = "index"
 
             def setTitleForIndex(self):
-                categoryName = str(Path(self.path).parent)
+                categoryName = str(Path(self.path).parent.name)
                 self.title = categoryDict[categoryName]
 
             setCategoryForIndex(self)
@@ -268,84 +242,3 @@ def formatPage(_page):
     _page.edit()
     return _page
 
-
-def updateCategoryIndex(_pages, _category):
-    articles = [
-        f"""
-        <article>
-        <div class="article-info">
-            <h2 class="article-title">
-            <a href="{page.path.name}">
-                {page.title}
-            </a>
-            </h2>
-            <p class="article-date">
-            {page.date.replace("-", ".")}.{page.scene}
-            </p>
-        </div>
-        <p class="article-summary">
-            {page.note}
-        </p>
-        </article>
-        """
-        for page in _pages
-        if page.category != "index"
-    ]
-
-    articleString = "".join(articles)
-    categoryIndex = Path(f"{_category}/index.html")
-    with open(categoryIndex, "r+", encoding="utf-8") as HTML:
-        content = BeautifulSoup(HTML, "html.parser")
-        header = content.body.main.header
-
-        oldItems = content.find_all("article")
-        for item in oldItems:
-            item.extract()
-
-        header.insert_after(BeautifulSoup(dedent(articleString), "html.parser"))
-        HTML.seek(0)
-        HTML.truncate(0)
-        HTML.write(content.prettify(formatter=None))
-
-
-def updateMainIndex(_pages):
-    mainIndex = Path("index.html")
-    articles = [
-        f"""
-        <article>
-        <h1 class="article-title">
-            <a href="{page.path}">
-            {page.title}
-            </a>
-        </h1>
-        <p class="article-date">
-            {page.date.replace("-", ".")}.{page.scene}
-        </p>
-        <p class="article-summary">
-            {page.note}
-        </p>
-        </article>
-        """
-        for page in _pages
-        if page.category != "index"
-    ]
-    articleString = "".join(articles)
-    with open(mainIndex, "r+", encoding="utf-8") as HTML:
-        content = BeautifulSoup(HTML, "html.parser")
-        target = content.body.main.find(id="column-right")
-        target.clear()
-        target.append(BeautifulSoup(dedent(articleString), "html.parser"))
-        HTML.seek(0)
-        HTML.truncate(0)
-        HTML.write(content.prettify(formatter=None))
-
-
-allPages = []
-
-for category in categorys:
-    categoryPages = list(map(formatPage, getPages(category, directory)))
-    categoryPages.sort(key=lambda x: x.date, reverse=True)
-    updateCategoryIndex(categoryPages, category)
-    allPages.extend(categoryPages)
-allPages.sort(key=lambda x: x.date, reverse=True)
-updateMainIndex(allPages)

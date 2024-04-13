@@ -195,8 +195,8 @@ class Page:
                 else:
                     board = article.find(id="board")
                     board.string = boardString
-                
-                board.prettify() 
+
+                board.prettify()
 
             def setContents(self, _body):
                 if self.category != "weekly":
@@ -252,10 +252,9 @@ def getPages(_category, _directory):
     categoryDir = directory / category
 
     def createPage(_fileName, _category):
-        a = Page(path=Path(_fileName), category=_category)
-        a.setAttrs()
-        a.edit()
-
+        # a = Page(path=Path(_fileName), category=_category)
+        # a.setAttrs()
+        # a.edit()
         return Page(path=Path(_fileName), category=_category)
 
     pages = list(map(lambda x: createPage(x, category), categoryDir.iterdir()))
@@ -264,37 +263,43 @@ def getPages(_category, _directory):
     return pages
 
 
+def formatPage(_page):
+    _page.setAttrs()
+    _page.edit()
+
+
 def updateCategoryIndex(_pages, _category):
-    article = ""
-    for page in _pages:
-        newString = f"""
-                      <article>
-                        <div class="article-info">
-                          <h2 class="article-title">
-                            <a href="{page.path.name}">
-                              {page.title}
-                            </a>
-                          </h2>
-                          <p class="article-date">
-                            {page.date.replace("-", ".")}.{page.scene}
-                          </p>
-                        </div>
-                        <p class="article-summary">
-                          {page.note}
-                        </p>
-                      </article>
-                      """
-        article = "".join([article, newString])
+    articles = [
+        f"""
+        <article>
+        <div class="article-info">
+            <h2 class="article-title">
+            <a href="{page.path.name}">
+                {page.title}
+            </a>
+            </h2>
+            <p class="article-date">
+            {page.date.replace("-", ".")}.{page.scene}
+            </p>
+        </div>
+        <p class="article-summary">
+            {page.note}
+        </p>
+        </article>
+        """
+        for page in _pages
+    ]
+
+    articleString = "".join(articles)
     categoryIndex = Path(f"{_category}/index.html")
     with open(categoryIndex, "r+", encoding="utf-8") as HTML:
         content = BeautifulSoup(HTML, "html.parser")
         header = content.body.main.header
 
         oldArticles = content.find_all("article")
-        for oldArticle in oldArticles:
-            oldArticle.extract()
+        map(lambda x: x.extract(), oldArticles)
 
-        header.insert_after(BeautifulSoup(dedent(article), "html.parser"))
+        header.insert_after(BeautifulSoup(dedent(articleString), "html.parser"))
         HTML.seek(0)
         HTML.truncate(0)
         HTML.write(content.prettify(formatter=None))
@@ -302,29 +307,30 @@ def updateCategoryIndex(_pages, _category):
 
 def updateMainIndex(_pages):
     mainIndex = Path("index.html")
-    article = ""
-    for page in _pages:
-        newString = f"""
-                  <article>
-                    <h1 class="article-title">
-                      <a href="{page.path}">
-                        {page.title}
-                      </a>
-                    </h1>
-                    <p class="article-date">
-                      {page.date.replace("-", ".")}.{page.scene}
-                    </p>
-                    <p class="article-summary">
-                      {page.note}
-                    </p>
-                  </article>
-                  """
-        article = "".join([article, newString])
+    articles = [
+        f"""
+        <article>
+        <h1 class="article-title">
+            <a href="{page.path}">
+            {page.title}
+            </a>
+        </h1>
+        <p class="article-date">
+            {page.date.replace("-", ".")}.{page.scene}
+        </p>
+        <p class="article-summary">
+            {page.note}
+        </p>
+        </article>
+        """
+        for page in _pages
+    ]
+    articleString = "".join(articles)
     with open(mainIndex, "r+", encoding="utf-8") as HTML:
         content = BeautifulSoup(HTML, "html.parser")
         target = content.body.main.find(id="column-right")
         target.clear()
-        target.append(BeautifulSoup(dedent(article), "html.parser"))
+        target.append(BeautifulSoup(dedent(articleString), "html.parser"))
         HTML.seek(0)
         HTML.truncate(0)
         HTML.write(content.prettify(formatter=None))
@@ -334,9 +340,10 @@ allPages = []
 
 for category in categorys:
     categoryPages = getPages(category, directory)
-    # updateCategoryIndex(categoryPages, category)
-    # allPages.extend(categoryPages)
+    map(formatPage, categoryPages)
+    updateCategoryIndex(categoryPages, category)
+    allPages.extend(categoryPages)
 
 
-# allPages.sort(key=lambda x: x.date, reverse=True)
-# updateMainIndex(allPages)
+allPages.sort(key=lambda x: x.date, reverse=True)
+updateMainIndex(allPages)

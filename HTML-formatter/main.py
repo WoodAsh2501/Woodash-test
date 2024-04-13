@@ -20,6 +20,8 @@ attrDict = {
     "date": "date",
 }
 
+ignoreList = ["半燃其零・钻木求火码后记"]
+
 directory = Path(".")
 
 
@@ -32,15 +34,14 @@ class UnsortedAttributes(HTMLFormatter):
 class Page:
     def __init__(
         self,
-        title="*怎么没有标题*",
-        category="*我分类呢*",
-        note="*似乎并没有备注*",
-        tucao="*没有吐槽呢*",
-        scene="*竟然没有场景*",
-        date="*日期……应该要有的*",
-
-        path="*不是，没有路径吗？*",
-        style="*甚至没有样式表*",
+        title="",
+        category="",
+        note="",
+        tucao="",
+        scene="",
+        date="",
+        path="",
+        style="",
     ):
         self.title = title
         self.category = category
@@ -53,15 +54,6 @@ class Page:
         self.style = style
 
     def setAttrs(self):
-        with open(self.pagh, "r+", encoding="utf-8") as HTML:
-            content = BeautifulSoup(HTML, "html.parser")
-            head = content.head
-            body = content.body
-
-            setStyles(self, head)
-            setTitle(self)
-            setMeta(self, head, attrDict)
-
         def setStyles(self, _head):
             head = _head
             styleList = head.find_all("link", rel="stylesheet")
@@ -70,7 +62,31 @@ class Page:
 
         def setTitle(self):
             self.title = Path(self.path).stem
-        
+
+        def setSummaryForWeekly(self, _body):
+            if self.category and self.category != "weekly":
+                return
+
+            titles = _body.find_all("h2")
+            titles = map(lambda x: x.string.strip(), titles)
+            ignoreList = ["索引", "生活", "摘录", "网页", "创作", "图像", "结"]
+            summary = [title for title in titles if title not in ignoreList]
+            self.note = "/".join(summary)
+
+        def setForIndex(self):
+            if Path(self.path).stem != "index":
+                return
+
+            def setCategoryForIndex(self):
+                self.category = "index"
+
+            def setTitleForIndex(self):
+                categoryName = str(Path(self.path).parent)
+                self.title = categoryDict[categoryName]
+
+            setCategoryForIndex(self)
+            setTitleForIndex(self)
+
         def setMeta(self, _head, _attrDict):
             head = _head
             attrDict = _attrDict
@@ -82,23 +98,23 @@ class Page:
                 if tag:
                     setattr(self, attr, tag["content"])
 
-    def edit(self):
-        with open(self.pagh, "r+", encoding="utf-8") as HTML:
+            if "index" in str(self.path):
+                self.category = "index"
+
+        with open(self.path, "r+", encoding="utf-8") as HTML:
             content = BeautifulSoup(HTML, "html.parser")
             head = content.head
             body = content.body
 
-            
-            HTML.seek(0)
-            HTML.truncate(0)
-            HTML.write(content.prettify(formatter=None))
+            setTitle(self)
+            setForIndex(self)
+            setStyles(self, head)
+            setSummaryForWeekly(self, body)
+            setMeta(self, head, attrDict)
+
+    def edit(self):
 
         def editHead(self, _head):
-            head = _head
-            
-            updateHead(self, head)
-            addWelcome(self, head)
-
             def addWelcome(self, _head):
                 welcomeMsg = """
                           欢迎来到花园杂乱无章的*苗圃*！
@@ -137,49 +153,41 @@ class Page:
                     headTemplate += "\n"
 
                 headTemplate += dedent(
-                            f"""
+                    f"""
                             <script defer src="../scripts/article/setImageSize.js"></script>
                             """
                 )
                 headTemplate = indent(headTemplate, "  ")
                 head.clear()
                 head.append((headTemplate))
-            
 
-    def edit(self):
-        # def addWelcome(self):
-        #     with open(self.path, "r+", encoding="utf-8") as HTML:
-        #         content = BeautifulSoup(HTML, "html.parser")
-        #         welcomeMsg = """
-        #                   欢迎来到花园杂乱无章的*苗圃*！
-        #                   请随意看看吧。
-        #                   """
-        #         welcomeComment = Comment(dedent(welcomeMsg))
+            head = _head
 
-        #         hasComment = type(content.contents[0]) == Comment
-        #         if not hasComment:
-        #             content.insert(0, welcomeComment)
-        #         else:
-        #             comment = content.contents[0]
-        #             comment.replace_with(welcomeComment)
-        #         HTML.seek(0)
-        #         HTML.truncate(0)
-        #         HTML.write(content.prettify(formatter=None))
+            updateHead(self, head)
+            addWelcome(self, head)
 
-        def addBoard(self):
-            link = "index.html"
-            categoryName = categoryDict[self.category]
+        def editBody(self, _body, _ignoreList):
+            if self.category == "index":
+                return
+            if self.title in _ignoreList:
+                return
 
-            with open(self.path, "r+", encoding="utf-8") as HTML:
-                content = BeautifulSoup(HTML, "html.parser")
-                article = content.body.article
+            def setDate(self, _body):
+                dateTag = _body.find(id="article-header-date")
+                dateTag.string = self.date.replace("-", ".")
+
+            def setBoard(self, _body, _categoryDict):
+                link = "index.html"
+                categoryName = _categoryDict[self.category]
+
+                article = _body.article
 
                 boardString = f"""
                             <a href="{link}" id="return">{categoryName}</a>
                             <img src="../images/asterisk.svg" id="asterisk" alt="" />
-                          """
-
-                hasBoard = article.find(id="board")
+                        """
+                boardString = indent(dedent(boardString), "    ")
+                hasBoard = _body.find(id="board")
                 if not hasBoard:
                     boardTag = content.new_tag("div", id="board")
                     boardTag.string = boardString
@@ -187,69 +195,21 @@ class Page:
                 else:
                     board = article.find(id="board")
                     board.string = boardString
+                
+                board.prettify() 
 
-                HTML.seek(0)
-                HTML.truncate(0)
-                HTML.write(content.prettify(formatter=None))
+            def setContents(self, _body):
+                if self.category != "weekly":
+                    return
+                article = _body.article
 
-        def setDate(self):
-            with open(self.path, "r+", encoding="utf-8") as HTML:
-                content = BeautifulSoup(HTML, "html.parser")
-                dateTag = content.find(id="article-header-date")
-                dateTag.string = dateTag.string.replace("-", ".")
-                # 写入
-                HTML.seek(0)
-                HTML.truncate(0)
-                HTML.write(content.prettify(formatter=None))
-
-        # def updateHead(self):
-        #     with open(self.path, "r+", encoding="utf-8") as HTML:
-        #         content = BeautifulSoup(HTML, "html.parser")
-        #         head = content.head
-        #         headTemplate = f"""
-        #                         <meta charset="utf-8" />
-        #                         <meta http-equiv="Content-Language" content="zh-CN" />
-        #                         <meta name="language" content="zh-CN" />
-        #                         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-        #                         <title>Woodash * {self.title}</title>
-        #                         <meta name="description" content="技术与美学与数字花园" />
-        #                         <meta name="author" content="woodash" />
-        #                         <meta name="date" content="{self.date}" />
-
-        #                         <meta name="woodash-note" content="{self.note}">
-        #                         <meta name="woodash-tucao" content="{self.tucao}">
-        #                         <meta name="woodash-scene" content="{self.scene}">
-                                
-        #                         <link rel="icon" href="../images/favicon.ico" />
-        #                         <link rel="preconnect" href="https://ik.imagekit.io" crossorigin />
-        #                         """
-        #         headTemplate = dedent(headTemplate)
-        #         for style in self.style:
-        #             headTemplate += f"""{style}"""
-        #             headTemplate += "\n"
-
-        #         headTemplate += dedent(
-        #             f"""
-        #                         <script defer src="../scripts/article/setImageSize.js"></script>
-        #                         """
-        #         )
-        #         headTemplate = indent(headTemplate, "  ")
-        #         head.clear()
-        #         head.append((headTemplate))
-        #         # 写入
-        #         HTML.seek(0)
-        #         HTML.truncate(0)
-        #         HTML.write(content.prettify(formatter=None))
-
-        def addContents(self):
-            with open(self.path, "r+", encoding="utf-8") as HTML:
-                content = BeautifulSoup(HTML, "html.parser")
-                article = content.body.article
-
-                oldContents = article.find_all(id="索引")
-                for oldTag in oldContents:
-                    oldTag.extract()
+                hasContents = article.find(id="索引")
+                if not hasContents:
+                    contentsTag = content.new_tag("section", id="索引", _class="level2")
+                    articleHeader = article.header
+                    articleHeader.insert_after(contentsTag)
+                else:
+                    contentsTag = article.find(id="索引")
 
                 titles = article.find_all(class_="level2")
                 contentsTag = content.new_tag("section")
@@ -263,62 +223,45 @@ class Page:
                     return string
 
                 contentsTag.string = f"""<h2>索引</h2>
-                                    <ul>
-                                    {"".join(map(turnIntoListItem, titles))}
-                                    </ul>"""
-                articleHeader = article.header
-                articleHeader.insert_after(contentsTag)
+                                                <ul>
+                                                {"".join(map(turnIntoListItem, titles))}
+                                                </ul>"""
 
-                HTML.seek(0)
-                HTML.truncate(0)
-                HTML.write(content.prettify(formatter=None))
+            body = _body
 
-        def addSummary(self):
-            with open(self.path, "r+", encoding="utf-8") as HTML:
-                content = BeautifulSoup(HTML, "html.parser")
-                article = content.body.article
-                titles = article.find_all("h2")
-                titles = map(lambda x: x.string.strip(), titles)
-                ignoreList = ["索引", "生活", "摘录", "网页", "创作", "图像", "结"]
-                summary = [title for title in titles if title not in ignoreList]
-                self.note = "/".join(summary)
+            setBoard(self, body, categoryDict)
+            setContents(self, body)
+            setDate(self, body)
 
-        if self.category != "index":
-            addBoard(self)
-            setDate(self)
+        with open(self.path, "r+", encoding="utf-8") as HTML:
+            content = BeautifulSoup(HTML, "html.parser")
+            head = content.head
+            body = content.body
 
-        if self.category == "weekly":
-            if self.title == "半燃其零・钻木求火码后记":
-                pass
-            else:
-                addContents(self)
-                addSummary(self)
+            editHead(self, head)
+            editBody(self, body, ignoreList)
 
-        addWelcome(self)
-        updateHead(self)
+            HTML.seek(0)
+            HTML.truncate(0)
+            HTML.write(content.prettify(formatter=None))
 
 
 def getPages(_category, _directory):
-    _pages = []
-    categoryDir = _directory / _category
-    for fileName in categoryDir.iterdir():
-        # if Path(fileName).suffix != "html":
-        #   continue
-        page = Page(path=Path(fileName))
-        # page.setAttrs()
-        # if Path(fileName).stem == "index":
-        #     page.category = "index"
-        # else:
-        #     page.category = _category
-        # # page.edit()
+    category = _category
+    directory = _directory
+    categoryDir = directory / category
 
-        # ignore = page.category == "index" or not page.note
-        # if not ignore:
-        #     _pages.append(page)
+    def createPage(_fileName, _category):
+        a = Page(path=Path(_fileName), category=_category)
+        a.setAttrs()
+        a.edit()
 
-    _pages.sort(key=lambda x: x.date, reverse=True)
+        return Page(path=Path(_fileName), category=_category)
 
-    return _pages
+    pages = list(map(lambda x: createPage(x, category), categoryDir.iterdir()))
+    pages.sort(key=lambda x: x.date, reverse=True)
+
+    return pages
 
 
 def updateCategoryIndex(_pages, _category):
@@ -391,9 +334,9 @@ allPages = []
 
 for category in categorys:
     categoryPages = getPages(category, directory)
-    updateCategoryIndex(categoryPages, category)
-    allPages.extend(categoryPages)
+    # updateCategoryIndex(categoryPages, category)
+    # allPages.extend(categoryPages)
 
 
-allPages.sort(key=lambda x: x.date, reverse=True)
-updateMainIndex(allPages)
+# allPages.sort(key=lambda x: x.date, reverse=True)
+# updateMainIndex(allPages)

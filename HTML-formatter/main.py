@@ -61,6 +61,9 @@ class Page:
             self.style = styleList
 
         def setTitle(self):
+            if self.category == "index":
+                return
+
             self.title = Path(self.path).stem
 
         def setSummaryForWeekly(self, _body):
@@ -97,9 +100,6 @@ class Page:
                 tag = head.find("meta", attrs={"name": attrName})
                 if tag:
                     setattr(self, attr, tag["content"])
-
-            if "index" in str(self.path):
-                self.category = "index"
 
         with open(self.path, "r+", encoding="utf-8") as HTML:
             content = BeautifulSoup(HTML, "html.parser")
@@ -266,6 +266,7 @@ def getPages(_category, _directory):
 def formatPage(_page):
     _page.setAttrs()
     _page.edit()
+    return _page
 
 
 def updateCategoryIndex(_pages, _category):
@@ -288,6 +289,7 @@ def updateCategoryIndex(_pages, _category):
         </article>
         """
         for page in _pages
+        if page.category != "index"
     ]
 
     articleString = "".join(articles)
@@ -296,8 +298,9 @@ def updateCategoryIndex(_pages, _category):
         content = BeautifulSoup(HTML, "html.parser")
         header = content.body.main.header
 
-        oldArticles = content.find_all("article")
-        map(lambda x: x.extract(), oldArticles)
+        oldItems = content.find_all("article")
+        for item in oldItems:
+            item.extract()
 
         header.insert_after(BeautifulSoup(dedent(articleString), "html.parser"))
         HTML.seek(0)
@@ -324,6 +327,7 @@ def updateMainIndex(_pages):
         </article>
         """
         for page in _pages
+        if page.category != "index"
     ]
     articleString = "".join(articles)
     with open(mainIndex, "r+", encoding="utf-8") as HTML:
@@ -339,11 +343,9 @@ def updateMainIndex(_pages):
 allPages = []
 
 for category in categorys:
-    categoryPages = getPages(category, directory)
-    map(formatPage, categoryPages)
+    categoryPages = list(map(formatPage, getPages(category, directory)))
+    categoryPages.sort(key=lambda x: x.date, reverse=True)
     updateCategoryIndex(categoryPages, category)
     allPages.extend(categoryPages)
-
-
 allPages.sort(key=lambda x: x.date, reverse=True)
 updateMainIndex(allPages)

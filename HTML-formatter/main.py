@@ -82,49 +82,89 @@ class Page:
                 if tag:
                     setattr(self, attr, tag["content"])
 
-
-
     def edit(self):
+        with open(self.pagh, "r+", encoding="utf-8") as HTML:
+            content = BeautifulSoup(HTML, "html.parser")
+            head = content.head
+            body = content.body
 
-        # def setStyle(self):
-        #     with open(self.path, "r+", encoding="utf-8") as HTML:
-        #         content = BeautifulSoup(HTML, "html.parser")
-        #         head = content.head
-        #         styleList = head.find_all("link", rel="stylesheet")
-        #         styleList = map(str, styleList)
-        #         self.style = styleList
+            
+            HTML.seek(0)
+            HTML.truncate(0)
+            HTML.write(content.prettify(formatter=None))
 
-        # def setAttrs(self):
-        #     with open(self.path, "r+", encoding="utf-8") as HTML:
-        #         content = BeautifulSoup(HTML, "html.parser")
-        #         head = content.head
+        def editHead(self, _head):
+            head = _head
+            
+            updateHead(self, head)
+            addWelcome(self, head)
 
-        #         attrs = (attr for attr in attrDict.keys())
-
-        #         for attr in attrs:
-        #             attrName = attrDict[attr]
-        #             tag = head.find("meta", attrs={"name": attrName})
-        #             if tag:
-        #                 setattr(self, attr, tag["content"])
-
-        def addWelcome(self):
-            with open(self.path, "r+", encoding="utf-8") as HTML:
-                content = BeautifulSoup(HTML, "html.parser")
+            def addWelcome(self, _head):
                 welcomeMsg = """
                           欢迎来到花园杂乱无章的*苗圃*！
                           请随意看看吧。
                           """
                 welcomeComment = Comment(dedent(welcomeMsg))
-
                 hasComment = type(content.contents[0]) == Comment
                 if not hasComment:
                     content.insert(0, welcomeComment)
                 else:
                     comment = content.contents[0]
                     comment.replace_with(welcomeComment)
-                HTML.seek(0)
-                HTML.truncate(0)
-                HTML.write(content.prettify(formatter=None))
+
+            def updateHead(self, _head):
+                headTemplate = f"""
+                                <meta charset="utf-8" />
+                                <meta http-equiv="Content-Language" content="zh-CN" />
+                                <meta name="language" content="zh-CN" />
+                                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+                                <title>Woodash * {self.title}</title>
+                                <meta name="description" content="技术与美学与数字花园" />
+                                <meta name="author" content="woodash" />
+                                <meta name="date" content="{self.date}" />
+
+                                <meta name="woodash-note" content="{self.note}">
+                                <meta name="woodash-tucao" content="{self.tucao}">
+                                <meta name="woodash-scene" content="{self.scene}">
+                                
+                                <link rel="icon" href="../images/favicon.ico" />
+                                <link rel="preconnect" href="https://ik.imagekit.io" crossorigin />
+                                """
+                headTemplate = dedent(headTemplate)
+                for style in self.style:
+                    headTemplate += f"""{style}"""
+                    headTemplate += "\n"
+
+                headTemplate += dedent(
+                            f"""
+                            <script defer src="../scripts/article/setImageSize.js"></script>
+                            """
+                )
+                headTemplate = indent(headTemplate, "  ")
+                head.clear()
+                head.append((headTemplate))
+            
+
+    def edit(self):
+        # def addWelcome(self):
+        #     with open(self.path, "r+", encoding="utf-8") as HTML:
+        #         content = BeautifulSoup(HTML, "html.parser")
+        #         welcomeMsg = """
+        #                   欢迎来到花园杂乱无章的*苗圃*！
+        #                   请随意看看吧。
+        #                   """
+        #         welcomeComment = Comment(dedent(welcomeMsg))
+
+        #         hasComment = type(content.contents[0]) == Comment
+        #         if not hasComment:
+        #             content.insert(0, welcomeComment)
+        #         else:
+        #             comment = content.contents[0]
+        #             comment.replace_with(welcomeComment)
+        #         HTML.seek(0)
+        #         HTML.truncate(0)
+        #         HTML.write(content.prettify(formatter=None))
 
         def addBoard(self):
             link = "index.html"
@@ -162,45 +202,45 @@ class Page:
                 HTML.truncate(0)
                 HTML.write(content.prettify(formatter=None))
 
-        def updateHead(self):
-            with open(self.path, "r+", encoding="utf-8") as HTML:
-                content = BeautifulSoup(HTML, "html.parser")
-                head = content.head
-                headTemplate = f"""
-                                <meta charset="utf-8" />
-                                <meta http-equiv="Content-Language" content="zh-CN" />
-                                <meta name="language" content="zh-CN" />
-                                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        # def updateHead(self):
+        #     with open(self.path, "r+", encoding="utf-8") as HTML:
+        #         content = BeautifulSoup(HTML, "html.parser")
+        #         head = content.head
+        #         headTemplate = f"""
+        #                         <meta charset="utf-8" />
+        #                         <meta http-equiv="Content-Language" content="zh-CN" />
+        #                         <meta name="language" content="zh-CN" />
+        #                         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-                                <title>Woodash * {self.title}</title>
-                                <meta name="description" content="技术与美学与数字花园" />
-                                <meta name="author" content="woodash" />
-                                <meta name="date" content="{self.date}" />
+        #                         <title>Woodash * {self.title}</title>
+        #                         <meta name="description" content="技术与美学与数字花园" />
+        #                         <meta name="author" content="woodash" />
+        #                         <meta name="date" content="{self.date}" />
 
-                                <meta name="woodash-note" content="{self.note}">
-                                <meta name="woodash-tucao" content="{self.tucao}">
-                                <meta name="woodash-scene" content="{self.scene}">
+        #                         <meta name="woodash-note" content="{self.note}">
+        #                         <meta name="woodash-tucao" content="{self.tucao}">
+        #                         <meta name="woodash-scene" content="{self.scene}">
                                 
-                                <link rel="icon" href="../images/favicon.ico" />
-                                <link rel="preconnect" href="https://ik.imagekit.io" crossorigin />
-                                """
-                headTemplate = dedent(headTemplate)
-                for style in self.style:
-                    headTemplate += f"""{style}"""
-                    headTemplate += "\n"
+        #                         <link rel="icon" href="../images/favicon.ico" />
+        #                         <link rel="preconnect" href="https://ik.imagekit.io" crossorigin />
+        #                         """
+        #         headTemplate = dedent(headTemplate)
+        #         for style in self.style:
+        #             headTemplate += f"""{style}"""
+        #             headTemplate += "\n"
 
-                headTemplate += dedent(
-                    f"""
-                                <script defer src="../scripts/article/setImageSize.js"></script>
-                                """
-                )
-                headTemplate = indent(headTemplate, "  ")
-                head.clear()
-                head.append((headTemplate))
-                # 写入
-                HTML.seek(0)
-                HTML.truncate(0)
-                HTML.write(content.prettify(formatter=None))
+        #         headTemplate += dedent(
+        #             f"""
+        #                         <script defer src="../scripts/article/setImageSize.js"></script>
+        #                         """
+        #         )
+        #         headTemplate = indent(headTemplate, "  ")
+        #         head.clear()
+        #         head.append((headTemplate))
+        #         # 写入
+        #         HTML.seek(0)
+        #         HTML.truncate(0)
+        #         HTML.write(content.prettify(formatter=None))
 
         def addContents(self):
             with open(self.path, "r+", encoding="utf-8") as HTML:

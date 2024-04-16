@@ -71,23 +71,30 @@ a:hover {
   display: none;
 }
 
-/* article:has(a:hover) .sigil {
-  display: block;
-  position: fixed;
-  width: 100vw;
-  height: auto;
-  left: 0;
-  top: 0;
-  transform: translate(-50% -50%);
-  z-index: -1;
-} */
+html::after {
+  content: "";
 
-html:has(a:hover) {
-  background-image: url(sigil.svg);
-  background-color: white;
+  background-image: url("sigil.svg");
   background-repeat: no-repeat;
-  background-size: cover;;
-  transition:  all 1s;
+  background-attachment: fixed;
+  background-size: cover;
+  background-position-y: center;
+  position: absolute;  
+
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.5s;
+
+}
+
+html:has(a:hover)::after {
+  opacity: 1;
+
 }
 
 html {

@@ -2,16 +2,33 @@ from pathlib import Path
 from textwrap import dedent, indent
 from bs4 import BeautifulSoup
 from bs4 import Comment
-import re
-
-from globalVar import *
+from bs4.formatter import HTMLFormatter
 
 
-def getTagText(_tag):
-    string = _tag.string if _tag.string else _tag.text
-    string = string.strip()
-    string = re.sub("\s+", " ", string)
-    return string
+categorys = ["notes", "weekly", "essays", "experience", "records"]
+categoryDict = {
+    "essays": "杂谈",
+    "weekly": "周报",
+    "experience": "体验",
+    "records": "琐记",
+    "notes": "笔记",
+}
+attrDict = {
+    "note": "woodash-note",
+    "tucao": "woodash-tucao",
+    "scene": "woodash-scene",
+    "date": "date",
+}
+
+ignoreList = ["半燃其零・钻木求火码后记"]
+
+directory = Path(".")
+
+
+class UnsortedAttributes(HTMLFormatter):
+    def attributes(self, tag):
+        for k, v in tag.attrs.items():
+            yield k, v
 
 
 class Page:
@@ -41,21 +58,17 @@ class Page:
             head = _head
             styleList = head.find_all("link", rel="stylesheet")
             styleList = map(str, styleList)
-            styleList = list(set(styleList))
             self.style = styleList
 
         def setTitle(self):
-            if self.category == "index":
-                return
-
             self.title = Path(self.path).stem
 
-        def setNoteForWeekly(self, _body):
+        def setSummaryForWeekly(self, _body):
             if self.category and self.category != "weekly":
                 return
 
             titles = _body.find_all("h2")
-            titles = list(map(getTagText, titles))
+            titles = map(lambda x: x.string.strip(), titles)
             ignoreList = ["索引", "生活", "摘录", "网页", "创作", "图像", "结"]
             summary = [title for title in titles if title not in ignoreList]
             self.note = "/".join(summary)
@@ -68,13 +81,13 @@ class Page:
                 self.category = "index"
 
             def setTitleForIndex(self):
-                categoryName = str(Path(self.path).parent.name)
+                categoryName = str(Path(self.path).parent)
                 self.title = categoryDict[categoryName]
 
             setCategoryForIndex(self)
             setTitleForIndex(self)
 
-        def setWoodashAttrs(self, _head, _attrDict):
+        def setMeta(self, _head, _attrDict):
             head = _head
             attrDict = _attrDict
             attrs = (attr for attr in attrDict.keys())
@@ -85,18 +98,19 @@ class Page:
                 if tag:
                     setattr(self, attr, tag["content"])
 
+            if "index" in str(self.path):
+                self.category = "index"
+
         with open(self.path, "r+", encoding="utf-8") as HTML:
             content = BeautifulSoup(HTML, "html.parser")
             head = content.head
             body = content.body
 
-            setWoodashAttrs(self, head, attrDict)
             setTitle(self)
             setForIndex(self)
             setStyles(self, head)
-            setNoteForWeekly(self, body)
-
-            print(self.title)
+            setSummaryForWeekly(self, body)
+            setMeta(self, head, attrDict)
 
     def edit(self):
 
@@ -176,12 +190,13 @@ class Page:
                 hasBoard = _body.find(id="board")
                 if not hasBoard:
                     boardTag = content.new_tag("div", id="board")
+                    boardTag.string = boardString
                     article.insert(0, boardTag)
                 else:
-                    boardTag = article.find(id="board")
-
-                boardTag.string = boardString
-                boardTag.prettify()
+                    board = article.find(id="board")
+                    board.string = boardString
+                
+                board.prettify() 
 
             def setContents(self, _body):
                 if self.category != "weekly":
@@ -190,17 +205,19 @@ class Page:
 
                 hasContents = article.find(id="索引")
                 if not hasContents:
-                    contentsTag = content.new_tag("section", id="索引", class_="level2")
+                    contentsTag = content.new_tag("section", id="索引", _class="level2")
                     articleHeader = article.header
                     articleHeader.insert_after(contentsTag)
                 else:
                     contentsTag = article.find(id="索引")
 
                 titles = article.find_all(class_="level2")
+                contentsTag = content.new_tag("section")
+                contentsTag["id"] = "索引"
+                contentsTag["class"] = "level2"
 
                 def turnIntoListItem(_titleTag):
-                    h2Tag = _titleTag.h2
-                    name = getTagText(h2Tag).strip()
+                    name = _titleTag.h2.string.strip()
                     id = _titleTag.get("id")
                     string = f'<li><a href="#{id}">{name}</a></li>'
                     return string
@@ -235,6 +252,10 @@ def getPages(_category, _directory):
     categoryDir = directory / category
 
     def createPage(_fileName, _category):
+        a = Page(path=Path(_fileName), category=_category)
+        a.setAttrs()
+        a.edit()
+
         return Page(path=Path(_fileName), category=_category)
 
     pages = list(map(lambda x: createPage(x, category), categoryDir.iterdir()))
@@ -243,7 +264,79 @@ def getPages(_category, _directory):
     return pages
 
 
-def formatPage(_page):
-    _page.setAttrs()
-    _page.edit()
-    return _page
+def updateCategoryIndex(_pages, _category):
+    article = ""
+    for page in _pages:
+        newString = f"""
+                      <article>
+                        <div class="article-info">
+                          <h2 class="article-title">
+                            <a href="{page.path.name}">
+                              {page.title}
+                            </a>
+                          </h2>
+                          <p class="article-date">
+                            {page.date.replace("-", ".")}.{page.scene}
+                          </p>
+                        </div>
+                        <p class="article-summary">
+                          {page.note}
+                        </p>
+                      </article>
+                      """
+        article = "".join([article, newString])
+    categoryIndex = Path(f"{_category}/index.html")
+    with open(categoryIndex, "r+", encoding="utf-8") as HTML:
+        content = BeautifulSoup(HTML, "html.parser")
+        header = content.body.main.header
+
+        oldArticles = content.find_all("article")
+        for oldArticle in oldArticles:
+            oldArticle.extract()
+
+        header.insert_after(BeautifulSoup(dedent(article), "html.parser"))
+        HTML.seek(0)
+        HTML.truncate(0)
+        HTML.write(content.prettify(formatter=None))
+
+
+def updateMainIndex(_pages):
+    mainIndex = Path("index.html")
+    article = ""
+    for page in _pages:
+        newString = f"""
+                  <article>
+                    <h1 class="article-title">
+                      <a href="{page.path}">
+                        {page.title}
+                      </a>
+                    </h1>
+                    <p class="article-date">
+                      {page.date.replace("-", ".")}.{page.scene}
+                    </p>
+                    <p class="article-summary">
+                      {page.note}
+                    </p>
+                  </article>
+                  """
+        article = "".join([article, newString])
+    with open(mainIndex, "r+", encoding="utf-8") as HTML:
+        content = BeautifulSoup(HTML, "html.parser")
+        target = content.body.main.find(id="column-right")
+        target.clear()
+        target.append(BeautifulSoup(dedent(article), "html.parser"))
+        HTML.seek(0)
+        HTML.truncate(0)
+        HTML.write(content.prettify(formatter=None))
+
+
+allPages = []
+
+for category in categorys:
+    categoryPages = getPages(category, directory)
+    # updateCategoryIndex(categoryPages, category)
+    # allPages.extend(categoryPages)
+
+
+# allPages.sort(key=lambda x: x.date, reverse=True)
+# updateMainIndex(allPages)

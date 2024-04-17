@@ -67,19 +67,18 @@ a:hover {
   background-color: #f5f5f5;
 }
 
-.sigil {
-  display: none;
-}
+/* 纯抽象方案 */
 
-html::after {
+article::before {
   content: "";
+  position: fixed;
+  height: 200%;
 
   background-image: url("sigil.svg");
   background-repeat: no-repeat;
   background-attachment: fixed;
   background-size: cover;
-  background-position-y: center;
-  position: absolute;  
+  background-position-y: center; 
 
   top: 0;
   left: 0;
@@ -90,11 +89,15 @@ html::after {
   opacity: 0;
   transition: opacity 0.5s;
 
+  overflow: hidden;
 }
 
-html:has(a:hover)::after {
-  opacity: 1;
+section {
+  background-color:transparent
+}
 
+article:has(a:hover)::before {
+  opacity: 1;
 }
 
 html {

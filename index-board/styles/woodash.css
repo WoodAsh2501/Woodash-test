@@ -344,21 +344,18 @@ main {
 
 #game-record {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   width: fit-content;
   flex-wrap: wrap;
-}
-
-#game-info * {
-  width: fit-content;
 }
 
 #game-cover {
   position: relative;
   height: 240px;
-  z-index: -1;
-
-  /* margin-bottom: 2rem; */
+  width: 180px;
+  display: flex;
+  justify-content: center;
+  /* align-items: center; */
 }
 
 #cover-image {
@@ -372,39 +369,53 @@ main {
 #hand-image {
   position: absolute;
   height: 240px;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
   z-index: 1;
+  pointer-events: none;
   user-select: none;
 }
 
-#game-info,
-#game-meta,
+#game-info {
+  position: absolute;
+  width: 180px;
+  height: 240px;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out;
+}
+
 #game-activity {
   display: flex;
   flex-direction: column;
 }
 
 #game-meta {
+  padding: 0.5em;
+  display: flex;
+  flex-direction: column;
   font-weight: 600;
   font-variation-settings: "wght" 600;
-  /* margin-bottom: 2rem; */
+  height: 100%;
+  justify-content: space-between;
+  /* z-index: 1; */
 }
 
 #game-title {
   font-style: italic;
   font-synthesis-style: none;
-  font-size: 1.5em;
+  font-size: 1em;
 }
 
 #game-tags {
-  margin: 0.3lh;
   display: flex;
+  flex-direction: column;
+  gap: 0.3em;
 }
 
 .tags {
-  margin: 0.3em;
+  width: fit-content;
   border: 1.5px solid #8e4fdb;
   background-color: #efe2ff;
   padding: 0.2em 0.6em;
@@ -418,8 +429,11 @@ main {
   font-family: Inter;
   font-weight: 600;
   font-variation-settings: "wght" 600;
-  margin-top: auto;
+  margin-top: 1rlh;
   justify-content: flex-end;
+  padding: 0.3em;
+  border-radius: 5px;
+  border: 2px solid #8e4fdb;
 }
 
 #game-date {
@@ -428,12 +442,21 @@ main {
 }
 
 #game-time {
-  font-size: 2em;
-  line-height: 1.5lh;
-  margin-top: 0.5rlh;
+  color: #8e4fdb;
+  font-size: 1.5em;
   justify-content: flex-end;
   word-wrap: normal;
 }
+
+
+#cover-image:hover{
+  ~ #game-info {
+    opacity: 1;
+    box-shadow: inset 0 0 0 2px #8e4fdb;
+    border-radius: 5px;
+  }
+}
+
 
 #game-list {
   flex-grow: 1;
@@ -450,7 +473,7 @@ main {
   align-items: center;
 }
 
-.game-item:hover {
+.game-item::hover {
   border-radius: 8px;
   background-color: #efe2ff;
   color: #8e4fdb;
